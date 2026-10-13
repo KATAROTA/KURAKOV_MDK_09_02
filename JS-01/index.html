@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Анализатор каталога товаров</title>
+  </head>
+  <body>
+    <script>
+      const products = [
+        {
+          id: 1,
+          name: "Laptop",
+          price: 80000,
+          quantity: 2,
+          category: "electronics",
+        },
+        {
+          id: 2,
+          name: "Mouse",
+          price: 2500,
+          quantity: 5,
+          category: "electronics",
+        },
+        {
+          id: 3,
+          name: "Keyboard",
+          price: 4500,
+          quantity: 3,
+          category: "electronics",
+        },
+        {
+          id: 4,
+          name: "Chair",
+          price: 18000,
+          quantity: 1,
+          category: "furniture",
+        },
+        {
+          id: 5,
+          name: "Desk",
+          price: 25000,
+          quantity: 2,
+          category: "furniture",
+        },
+      ];
+
+      // 5.2. Обязательная часть
+
+      // 1. Стоимость всего количества одного товара.
+      function getProductTotal(product) {
+        return product.price * product.quantity;
+      }
+
+      // 2. Общая стоимость каталога.
+      function getTotalInventoryValue(products) {
+        return products.reduce((sum, product) => {
+          return sum + getProductTotal(product);
+        }, 0);
+      }
+
+      // 3. Самый дорогой товар по цене за единицу.
+      function getMostExpensiveProduct(products) {
+        if (products.length === 0) {
+          return undefined;
+        }
+
+        return products.reduce((mostExpensive, product) => {
+          if (product.price > mostExpensive.price) {
+            return product;
+          }
+
+          return mostExpensive;
+        }, products[0]);
+      }
+
+      // 4. Новый массив товаров выбранной категории.
+      function filterByCategory(products, category) {
+        return products.filter((product) => product.category === category);
+      }
+
+      // 5. Поиск товара по id. Если товара нет, find вернёт undefined.
+      function findProduct(products, id) {
+        return products.find((product) => product.id === id);
+      }
+
+      // 6. Товары, которые есть в наличии.
+      function getAvailableProducts(products) {
+        return products.filter((product) => product.quantity > 0);
+      }
+
+      // 5.3. Дополнительная часть
+
+      // 1. Статистика по каждой категории:
+      // productCount — число наименований;
+      // totalQuantity — количество единиц;
+      // totalValue — стоимость с учётом количества.
+      function getCategoryStatistics(products) {
+        return products.reduce((statistics, product) => {
+          const category = product.category;
+
+          if (!statistics[category]) {
+            statistics[category] = {
+              productCount: 0,
+              totalQuantity: 0,
+              totalValue: 0,
+            };
+          }
+
+          statistics[category].productCount += 1;
+          statistics[category].totalQuantity += product.quantity;
+          statistics[category].totalValue += getProductTotal(product);
+
+          return statistics;
+        }, {});
+      }
+
+      // 2. Новый массив с изменённым количеством выбранного товара.
+      function updateProductQuantity(products, id, quantity) {
+        return products.map((product) => {
+          if (product.id === id) {
+            return {
+              ...product,
+              quantity,
+            };
+          }
+
+          return product;
+        });
+      }
+
+      // 3. Сортировка по возрастанию цены. sort изменяет только копию массива.
+      function sortProductsByPrice(products) {
+        const copy = [...products];
+        return copy.sort((first, second) => first.price - second.price);
+      }
+
+      // Отдельная проверка каждой функции на исходных данных.
+
+      console.log("ПРОВЕРКА ФУНКЦИЙ");
+
+      console.log("1. Стоимость всех Laptop:", getProductTotal(products[0]));
+      // 160000
+
+      console.log("2. Стоимость каталога:", getTotalInventoryValue(products));
+      // 254000
+
+      console.log("3. Самый дорогой товар:", getMostExpensiveProduct(products));
+      // Объект Laptop, цена за единицу 80000.
+
+      console.log("4. Электроника:", filterByCategory(products, "electronics"));
+      // Laptop, Mouse, Keyboard.
+
+      console.log("5. Товар с id 3:", findProduct(products, 3));
+      // Объект Keyboard.
+      console.log("Несуществующий товар:", findProduct(products, 99));
+      // undefined
+
+      console.log("6. Товары в наличии:", getAvailableProducts(products));
+      // Все пять товаров.
+
+      console.log("7. Статистика категорий:", getCategoryStatistics(products));
+      // electronics: productCount 3, totalQuantity 10, totalValue 186000.
+      // furniture: productCount 2, totalQuantity 3, totalValue 68000.
+
+      const updatedProducts = updateProductQuantity(products, 2, 0);
+      console.log("8. Каталог после обновления:", updatedProducts);
+      console.log(
+        "Новое количество Mouse:",
+        findProduct(updatedProducts, 2).quantity,
+      );
+      // 0
+      console.log(
+        "Исходное количество Mouse:",
+        findProduct(products, 2).quantity,
+      );
+      // 5: исходный объект не изменился.
+
+      const sortedProducts = sortProductsByPrice(products);
+      console.log("9. Каталог по возрастанию цены:", sortedProducts);
+      // Mouse, Keyboard, Chair, Desk, Laptop.
+      console.log(
+        "Исходный порядок:",
+        products.map((product) => product.name),
+      );
+      // Laptop, Mouse, Keyboard, Chair, Desk.
+
+      // Краткий отчёт в консоль.
+      function printReport(products) {
+        const mostExpensive = getMostExpensiveProduct(products);
+
+        console.log("ОТЧЁТ ПО КАТАЛОГУ");
+        console.log("Количество наименований:", products.length);
+        console.log("Общая стоимость:", getTotalInventoryValue(products));
+        console.log("Самый дорогой товар:", mostExpensive?.name);
+        console.log("Цена за единицу:", mostExpensive?.price);
+        console.log(
+          "Электроника:",
+          filterByCategory(products, "electronics").map(
+            (product) => product.name,
+          ),
+        );
+        console.log("Товар с id 3:", findProduct(products, 3)?.name);
+        console.log(
+          "Наименований в наличии:",
+          getAvailableProducts(products).length,
+        );
+        console.log("Статистика категорий:", getCategoryStatistics(products));
+      }
+
+      printReport(products);
+    </script>
+  </body>
+</html>
