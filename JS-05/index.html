@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>JS-05. Классы</title>
+  </head>
+  <body>
+    <h1>Моя библиотека</h1>
+    <form id="bookForm">
+      <input type="text" id="title" placeholder="Название книги" />
+      <input type="text" id="author" placeholder="Автор" />
+      <button type="submit">Добавить</button>
+    </form>
+    <p id="message"></p>
+    <ul id="bookList"></ul>
+
+    <script type="text/plain" id="modelModule">
+      export class Book {
+          constructor(id, title, author) {
+              this.id = id;
+              this.title = title;
+              this.author = author;
+              this.read = false;
+          }
+
+          toggleRead() {
+              this.read = !this.read;
+          }
+      }
+
+      export class Library {
+          constructor(books = []) {
+              this.books = books;
+          }
+
+          addBook(title, author) {
+              if (!title.trim() || !author.trim()) {
+                  throw new Error("Заполните оба поля");
+              }
+              const id = this.books.length ? Math.max(...this.books.map(book => book.id)) + 1 : 1;
+              const book = new Book(id, title.trim(), author.trim());
+              this.books.push(book);
+          }
+
+          removeBook(id) {
+              this.books = this.books.filter(book => book.id !== id);
+          }
+
+          toggleBook(id) {
+              const book = this.books.find(book => book.id === id);
+              if (book) book.toggleRead();
+          }
+      }
+    </script>
+
+    <script type="text/plain" id="viewModule">
+      export function renderBooks(books, list) {
+          list.innerHTML = "";
+          if (books.length === 0) {
+              list.textContent = "Книг пока нет";
+              return;
+          }
+
+          books.forEach(book => {
+              const item = document.createElement("li");
+              const title = document.createElement("span");
+              title.textContent = `${book.title} — ${book.author} (${book.read ? "прочитана" : "не прочитана"}) `;
+
+              const toggle = document.createElement("button");
+              toggle.textContent = book.read ? "Не прочитана" : "Прочитана";
+              toggle.dataset.id = book.id;
+              toggle.dataset.action = "toggle";
+
+              const remove = document.createElement("button");
+              remove.textContent = "Удалить";
+              remove.dataset.id = book.id;
+              remove.dataset.action = "remove";
+
+              item.append(title, toggle, " ", remove);
+              list.append(item);
+          });
+      }
+    </script>
+
+    <script type="module">
+      const modelUrl = URL.createObjectURL(
+        new Blob([document.getElementById("modelModule").textContent], {
+          type: "text/javascript",
+        }),
+      );
+      const viewUrl = URL.createObjectURL(
+        new Blob([document.getElementById("viewModule").textContent], {
+          type: "text/javascript",
+        }),
+      );
+
+      const { Book, Library } = await import(modelUrl);
+      const { renderBooks } = await import(viewUrl);
+
+      let savedBooks = [];
+      try {
+        const saved = JSON.parse(localStorage.getItem("js05_books") || "[]");
+        if (Array.isArray(saved)) {
+          savedBooks = saved
+            .filter(
+              (book) =>
+                typeof book.id === "number" &&
+                typeof book.title === "string" &&
+                typeof book.author === "string",
+            )
+            .map((data) => {
+              const book = new Book(data.id, data.title, data.author);
+              book.read = data.read === true;
+              return book;
+            });
+        }
+      } catch (error) {
+        savedBooks = [];
+      }
+
+      const library = new Library(savedBooks);
+      const form = document.getElementById("bookForm");
+      const title = document.getElementById("title");
+      const author = document.getElementById("author");
+      const list = document.getElementById("bookList");
+      const message = document.getElementById("message");
+
+      function update() {
+        localStorage.setItem("js05_books", JSON.stringify(library.books));
+        renderBooks(library.books, list);
+      }
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        try {
+          library.addBook(title.value, author.value);
+          title.value = "";
+          author.value = "";
+          message.textContent = "";
+          update();
+        } catch (error) {
+          message.textContent = error.message;
+        }
+      });
+
+      list.addEventListener("click", (event) => {
+        const id = Number(event.target.dataset.id);
+        if (event.target.dataset.action === "toggle") {
+          library.toggleBook(id);
+          update();
+        } else if (event.target.dataset.action === "remove") {
+          library.removeBook(id);
+          update();
+        }
+      });
+
+      renderBooks(library.books, list);
+    </script>
+  </body>
+</html>

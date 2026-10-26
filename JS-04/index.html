@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>JS-04. Модули</title>
+</head>
+<body>
+    <h1>Список задач</h1>
+    <form id="taskForm">
+        <input type="text" id="taskInput" placeholder="Название задачи">
+        <button type="submit">Добавить</button>
+    </form>
+    <p id="message"></p>
+    <ul id="taskList"></ul>
+
+    <script type="text/plain" id="dataModule">
+        let tasks = [];
+
+        export function loadTasks() {
+            try {
+                const saved = JSON.parse(localStorage.getItem("js04_tasks") || "[]");
+                tasks = Array.isArray(saved) ? saved.filter(task =>
+                    typeof task.id === "number" &&
+                    typeof task.title === "string" &&
+                    typeof task.done === "boolean"
+                ) : [];
+            } catch (error) {
+                tasks = [];
+            }
+        }
+
+        function saveTasks() {
+            localStorage.setItem("js04_tasks", JSON.stringify(tasks));
+        }
+
+        export function getTasks() {
+            return tasks;
+        }
+
+        export function addTask(title) {
+            title = title.trim();
+            if (!title) return false;
+            const id = tasks.length ? Math.max(...tasks.map(task => task.id)) + 1 : 1;
+            tasks.push({ id, title, done: false });
+            saveTasks();
+            return true;
+        }
+
+        export function removeTask(id) {
+            tasks = tasks.filter(task => task.id !== id);
+            saveTasks();
+        }
+
+        export function toggleTask(id) {
+            const task = tasks.find(task => task.id === id);
+            if (task) {
+                task.done = !task.done;
+                saveTasks();
+            }
+        }
+    </script>
+
+    <script type="text/plain" id="viewModule">
+        export function renderTasks(tasks, list) {
+            list.innerHTML = "";
+            if (tasks.length === 0) {
+                list.textContent = "Задач пока нет";
+                return;
+            }
+
+            tasks.forEach(task => {
+                const item = document.createElement("li");
+                const check = document.createElement("input");
+                check.type = "checkbox";
+                check.checked = task.done;
+                check.dataset.id = task.id;
+
+                const title = document.createElement("span");
+                title.textContent = " " + task.title + " ";
+
+                const button = document.createElement("button");
+                button.textContent = "Удалить";
+                button.dataset.id = task.id;
+                button.className = "remove";
+
+                item.append(check, title, button);
+                list.append(item);
+            });
+        }
+    </script>
+
+    <script type="module">
+        const dataUrl = URL.createObjectURL(new Blob([
+            document.getElementById("dataModule").textContent
+        ], { type: "text/javascript" }));
+        const viewUrl = URL.createObjectURL(new Blob([
+            document.getElementById("viewModule").textContent
+        ], { type: "text/javascript" }));
+
+        const { loadTasks, getTasks, addTask, removeTask, toggleTask } = await import(dataUrl);
+        const { renderTasks } = await import(viewUrl);
+
+        const form = document.getElementById("taskForm");
+        const input = document.getElementById("taskInput");
+        const list = document.getElementById("taskList");
+        const message = document.getElementById("message");
+
+        function updateList() {
+            renderTasks(getTasks(), list);
+        }
+
+        form.addEventListener("submit", event => {
+            event.preventDefault();
+            if (!addTask(input.value)) {
+                message.textContent = "Введите название задачи";
+                return;
+            }
+            message.textContent = "";
+            input.value = "";
+            updateList();
+        });
+
+        list.addEventListener("click", event => {
+            if (event.target.classList.contains("remove")) {
+                removeTask(Number(event.target.dataset.id));
+                updateList();
+            }
+        });
+
+        list.addEventListener("change", event => {
+            if (event.target.type === "checkbox") {
+                toggleTask(Number(event.target.dataset.id));
+                updateList();
+            }
+        });
+
+        loadTasks();
+        updateList();
+    </script>
+</body>
+</html>
