@@ -1,0 +1,12 @@
+{
+  "name": "ts-04",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/orders.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
